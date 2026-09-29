@@ -1,0 +1,24 @@
+{
+  "id": "./",
+  "name": "UniPlan Pro",
+  "short_name": "UniPlan",
+  "description": "Offline-Stundenplan, HISinOne- und Moodle-Import, Todos, Workload und Fokus-Timer",
+  "lang": "de-DE",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "categories": [
+    "education",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
