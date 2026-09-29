@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+
+    <meta name="theme-color" content="#0f172a">
+    <meta name="color-scheme" content="dark">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="UniPlan">
+
+    <title>UniPlan Pro</title>
+
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="./icon.svg">
+    <link rel="apple-touch-icon" href="./icon.svg">
+
+    <link rel="stylesheet" href="./style.css">
+    <script defer src="./app.js"></script>
+</head>
+
+<body>
+
+<header>
+    <div class="brand">
+        <h1>UniPlan Pro</h1>
+        <div id="top-subtitle" class="subtitle">Wird geladen …</div>
+    </div>
+
+    <div class="header-actions">
+        <button class="icon-btn" type="button"
+                onclick="openSourcesModal()"
+                title="Kalenderquellen"
+                aria-label="Kalenderquellen">
+            🔗
+        </button>
+
+        <button class="icon-btn" type="button"
+                onclick="exportICS()"
+                title="Kalender exportieren"
+                aria-label="Kalender exportieren">
+            📅
+        </button>
+
+        <button class="icon-btn" type="button"
+                onclick="exportBackup()"
+                title="Backup exportieren"
+                aria-label="Backup exportieren">
+            💾
+        </button>
+
+        <button class="icon-btn" type="button"
+                onclick="importBackup()"
+                title="Backup importieren"
+                aria-label="Backup importieren">
+            📥
+        </button>
+    </div>
+</header>
+
+<main>
+
+    <!-- HEUTE -->
+    <section id="tab-today" class="tab active">
+        <div class="page-head">
+            <h2>Heute</h2>
+            <span id="network-status" class="badge green">Online</span>
+        </div>
+
+        <div id="today-container"></div>
+    </section>
+
+    <!-- PLAN -->
+    <section id="tab-schedule" class="tab">
+        <div class="page-head">
+            <h2>📅 Wochenplan</h2>
+
+            <div class="small-actions">
+                <button class="btn" type="button" onclick="openCoursesModal()">
+                    Kurse
+                </button>
+
+                <button class="btn primary" type="button" onclick="openSessionModal()">
+                    ＋ Termin
+                </button>
+            </div>
+        </div>
+
+        <div id="schedule-container"></div>
+    </section>
+
+    <!-- TODOS -->
+    <section id="tab-todos" class="tab">
+        <div class="page-head">
+            <h2>✅ Todos</h2>
+            <button class="btn primary" type="button" onclick="openTodoModal()">
+                ＋ Neu
+            </button>
+        </div>
+
+        <input id="todo-search"
+               type="search"
+               placeholder="Todos oder Kurse durchsuchen …"
+               oninput="renderTodos()">
+
+        <div class="filters">
+            <button id="filter-open"
+                    class="chip active"
+                    type="button"
+                    onclick="setTodoFilter('open')">
+                Offen
+            </button>
+
+            <button id="filter-all"
+                    class="chip"
+                    type="button"
+                    onclick="setTodoFilter('all')">
+                Alle
+            </button>
+
+            <button id="filter-done"
+                    class="chip"
+                    type="button"
+                    onclick="setTodoFilter('done')">
+                Erledigt
+            </button>
+        </div>
+
+        <div id="todo-list"></div>
+    </section>
+
+    <!-- WORKLOAD -->
+    <section id="tab-workload" class="tab">
+        <div class="page-head">
+            <h2>📊 Workload</h2>
+            <span id="workload-total" class="badge blue">0 h/Woche</span>
+        </div>
+
+        <div id="workload-summary"></div>
+        <div id="workload-cards"></div>
+
+        <div class="page-head top-space">
+            <h2 class="small-heading">📝 Klausuren</h2>
+            <button class="btn primary" type="button" onclick="openExamModal()">
+                ＋ Klausur
+            </button>
+        </div>
+
+        <div id="exam-list"></div>
+
+        <div class="page-head top-space">
+            <h2 class="small-heading">🎓 Notenübersicht</h2>
+        </div>
+
+        <div id="grade-overview"></div>
+    </section>
+
+    <!-- FOKUS -->
+    <section id="tab-focus" class="tab">
+        <div class="page-head">
+            <h2>🎯 Fokus</h2>
+            <span id="streak-badge" class="badge amber">🔥 0 Tage</span>
+        </div>
+
+        <div class="filters center">
+            <button class="chip" type="button" onclick="setTimerMode(25)">
+                25 Min.
+            </button>
+
+            <button class="chip" type="button" onclick="setTimerMode(50)">
+                50 Min.
+            </button>
+
+            <button class="chip" type="button" onclick="setTimerMode(90)">
+                90 Min.
+            </button>
+        </div>
+
+        <div id="timer-ring" class="timer-ring">
+            <div class="timer-inner">
+                <div id="timer-display">25:00</div>
+                <div id="timer-task">Bereit für Fokus</div>
+            </div>
+        </div>
+
+        <div class="row center">
+            <button id="timer-main-button"
+                    class="btn primary timer-button"
+                    type="button"
+                    onclick="toggleTimer()">
+                Starten
+            </button>
+
+            <button class="btn" type="button" onclick="resetTimer()">
+                Reset
+            </button>
+        </div>
+
+        <div class="card top-space">
+            <div class="row between">
+                <strong>Letzte 7 Tage</strong>
+                <span id="focus-today" class="badge blue">0 Min. heute</span>
+            </div>
+
+            <div id="focus-chart" class="chart"></div>
+
+            <div class="stat-grid">
+                <div>
+                    <div class="item-sub">Diese Woche gesamt</div>
+                    <div id="stat-week-total" class="stat-value">0 Min.</div>
+                </div>
+
+                <div>
+                    <div class="item-sub">Ø pro aktivem Tag</div>
+                    <div id="stat-week-avg" class="stat-value">0 Min.</div>
+                </div>
+
+                <div>
+                    <div class="item-sub">Bester Tag</div>
+                    <div id="stat-best-day" class="stat-value">–</div>
+                </div>
+
+                <div>
+                    <div class="item-sub">Längste Serie</div>
+                    <div id="stat-longest-streak" class="stat-value">0 Tage</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<nav class="bottom-nav">
+    <button id="nav-today" class="active" type="button" onclick="switchTab('today')">
+        <span>🏠</span>Heute
+    </button>
+
+    <button id="nav-schedule" type="button" onclick="switchTab('schedule')">
+        <span>📅</span>Plan
+    </button>
+
+    <button id="nav-todos" type="button" onclick="switchTab('todos')">
+        <span>✅</span>Todos
+    </button>
+
+    <button id="nav-workload" type="button" onclick="switchTab('workload')">
+        <span>📊</span>Workload
+    </button>
+
+    <button id="nav-focus" type="button" onclick="switchTab('focus')">
+        <span>🎯</span>Fokus
+    </button>
+</nav>
+
+<!-- TERMIN -->
+<div id="modal-session" class="modal-bg">
+    <div class="modal">
+        <h3 id="session-modal-title">Termin hinzufügen</h3>
+
+        <input id="session-id" type="hidden">
+
+        <label for="session-course">Kurs / Modul</label>
+        <input id="session-course"
+               list="course-list"
+               placeholder="z. B. Mathematik II">
+
+        <label for="session-type">Art</label>
+        <select id="session-type">
+            <option value="Vorlesung">Vorlesung</option>
+            <option value="Übung">Übung</option>
+            <option value="Seminar">Seminar</option>
+            <option value="Praktikum">Praktikum</option>
+            <option value="Tutorium">Tutorium</option>
+            <option value="Sprechstunde">Sprechstunde</option>
+            <option value="Sonstiges">Sonstiges</option>
+        </select>
+
+        <label for="session-day">Wochentag</label>
+        <select id="session-day">
+            <option value="0">Montag</option>
+            <option value="1">Dienstag</option>
+            <option value="2">Mittwoch</option>
+            <option value="3">Donnerstag</option>
+            <option value="4">Freitag</option>
+            <option value="5">Samstag</option>
+            <option value="6">Sonntag</option>
+        </select>
+
+        <div class="grid-2">
+            <div>
+                <label for="session-start">Start</label>
+                <input id="session-start" type="time" step="300">
+            </div>
+
+            <div>
+                <label for="session-end">Ende</label>
+                <input id="session-end" type="time" step="300">
+            </div>
+        </div>
+
+        <label for="session-room">Raum / Online-Link</label>
+        <input id="session-room" placeholder="z. B. H-101">
+
+        <label for="session-lecturer">Dozent/in oder Übungsleiter/in</label>
+        <input id="session-lecturer" placeholder="optional">
+
+        <div class="modal-actions">
+            <button class="btn primary" type="button" onclick="saveSession()">
+                Speichern
+            </button>
+
+            <button class="btn" type="button" onclick="closeModal('modal-session')">
+                Abbrechen
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- TODO -->
+<div id="modal-todo" class="modal-bg">
+    <div class="modal">
+        <h3 id="todo-modal-title">Todo hinzufügen</h3>
+
+        <input id="todo-id" type="hidden">
+
+        <label for="todo-title">Aufgabe</label>
+        <input id="todo-title" placeholder="z. B. Übungsblatt 3 bearbeiten">
+
+        <label for="todo-course">Kurs / Modul</label>
+        <input id="todo-course" list="course-list" placeholder="optional">
+
+        <label for="todo-due">Fällig am</label>
+        <input id="todo-due" type="date">
+
+        <div class="grid-2">
+            <div>
+                <label for="todo-minutes">Aufwand in Minuten</label>
+                <input id="todo-minutes"
+                       type="number"
+                       min="1"
+                       max="1440"
+                       value="45">
+            </div>
+
+            <div>
+                <label for="todo-priority">Priorität</label>
+                <select id="todo-priority">
+                    <option value="1">Niedrig</option>
+                    <option value="2" selected>Normal</option>
+                    <option value="3">Dringend</option>
+                </select>
+            </div>
+        </div>
+
+        <label for="todo-repeat">Wiederholung</label>
+        <select id="todo-repeat">
+            <option value="0">Einmalig</option>
+            <option value="7">Wöchentlich</option>
+            <option value="14">Alle zwei Wochen</option>
+            <option value="30">Monatlich</option>
+        </select>
+
+        <label for="todo-notes">Notiz</label>
+        <textarea id="todo-notes" placeholder="optional"></textarea>
+
+        <div class="modal-actions">
+            <button class="btn primary" type="button" onclick="saveTodo()">
+                Speichern
+            </button>
+
+            <button class="btn" type="button" onclick="closeModal('modal-todo')">
+                Abbrechen
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- KLAUSUR -->
+<div id="modal-exam" class="modal-bg">
+    <div class="modal">
+        <h3 id="exam-modal-title">Klausur hinzufügen</h3>
+
+        <input id="exam-id" type="hidden">
+
+        <label for="exam-course">Kurs / Modul</label>
+        <input id="exam-course"
+               list="course-list"
+               placeholder="z. B. Mathematik II">
+
+        <label for="exam-name">Bezeichnung</label>
+        <input id="exam-name" placeholder="z. B. Abschlussklausur">
+
+        <div class="grid-2">
+            <div>
+                <label for="exam-date">Datum</label>
+                <input id="exam-date" type="date">
+            </div>
+
+            <div>
+                <label for="exam-time">Uhrzeit</label>
+                <input id="exam-time" type="time" value="09:00">
+            </div>
+        </div>
+
+        <label for="exam-room">Raum</label>
+        <input id="exam-room" placeholder="optional">
+
+        <div class="grid-2">
+            <div>
+                <label for="exam-prep-weeks">Vorbereitung in Wochen</label>
+                <input id="exam-prep-weeks"
+                       type="number"
+                       min="1"
+                       max="52"
+                       value="4">
+            </div>
+
+            <div>
+                <label for="exam-prep-hours">Lernaufwand gesamt (Std.)</label>
+                <input id="exam-prep-hours"
+                       type="number"
+                       min="1"
+                       max="1000"
+                       value="40">
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div>
+                <label for="exam-weight">Gewichtung Modulnote (%)</label>
+                <input id="exam-weight"
+                       type="number"
+                       min="0"
+                       max="100"
+                       value="100">
+            </div>
+
+            <div>
+                <label for="exam-ects">ECTS des Moduls</label>
+                <input id="exam-ects"
+                       type="number"
+                       min="0"
+                       max="60"
+                       value="0">
+            </div>
+        </div>
+
+        <label for="exam-grade">Erzielte Note (optional)</label>
+        <input id="exam-grade"
+               type="number"
+               min="1"
+               max="5"
+               step="0.1"
+               inputmode="decimal"
+               placeholder="z. B. 1.7">
+
+        <div class="modal-actions">
+            <button class="btn primary" type="button" onclick="saveExam()">
+                Speichern
+            </button>
+
+            <button class="btn" type="button" onclick="closeModal('modal-exam')">
+                Abbrechen
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- KURSVERWALTUNG -->
+<div id="modal-courses" class="modal-bg">
+    <div class="modal large-modal">
+        <div class="row between">
+            <h3>Kursverwaltung</h3>
+            <button class="btn primary" type="button" onclick="openCourseModal()">
+                ＋ Kurs
+            </button>
+        </div>
+
+        <p class="hint">
+            Archivierte Kurse erscheinen nicht mehr im aktuellen Plan und Workload.
+        </p>
+
+        <div id="course-manager-list"></div>
+
+        <div class="modal-actions">
+            <button class="btn" type="button" onclick="closeModal('modal-courses')">
+                Schließen
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- KURS EDITOR -->
+<div id="modal-course" class="modal-bg">
+    <div class="modal">
+        <h3 id="course-modal-title">Kurs hinzufügen</h3>
+
+        <input id="course-id" type="hidden">
+
+        <label for="course-name">Vollständiger Kursname</label>
+        <input id="course-name" placeholder="z. B. Mathematik II">
+
+        <label for="course-short">Kurzname</label>
+        <input id="course-short" placeholder="z. B. Mathe II">
+
+        <div class="grid-2">
+            <div>
+                <label for="course-ects">ECTS</label>
+                <input id="course-ects"
+                       type="number"
+                       min="0"
+                       max="60"
+                       value="0">
+            </div>
+
+            <div>
+                <label for="course-color">Farbe</label>
+                <input id="course-color"
+                       type="color"
+                       value="#3b82f6">
+            </div>
+        </div>
+
+        <label for="course-lecturer">Hauptdozent/in</label>
+        <input id="course-lecturer" placeholder="optional">
+
+        <label for="course-semester">Semester</label>
+        <input id="course-semester" placeholder="z. B. SoSe 2026">
+
+        <label class="checkbox-label">
+            <input id="course-archived" type="checkbox">
+            Kurs archivieren
+        </label>
+
+        <div class="modal-actions">
+            <button class="btn primary" type="button" onclick="saveCourse()">
+                Speichern
+            </button>
+
+            <button class="btn" type="button" onclick="closeModal('modal-course')">
+                Abbrechen
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- QUELLEN -->
+<div id="modal-sources" class="modal-bg">
+    <div class="modal large-modal">
+        <div class="row between">
+            <h3>🔗 Kalenderquellen</h3>
+            <button class="btn primary" type="button" onclick="openSourceModal()">
+                ＋ Quelle
+            </button>
+        </div>
+
+        <p class="hint">
+            HISinOne und Moodle funktionieren zuverlässig über heruntergeladene
+            <code>.ics</code>-Dateien. Bei Änderungen importierst du die neue Datei
+            in dieselbe Quelle.
+        </p>
+
+        <div id="source-list"></div>
+
+        <div class="modal-actions">
+            <button class="btn" type="button" onclick="closeModal('modal-sources')">
+                Schließen
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- QUELLE EDITOR -->
+<div id="modal-source" class="modal-bg">
+    <div class="modal">
+        <h3 id="source-modal-title">Kalenderquelle hinzufügen</h3>
+
+        <input id="source-id" type="hidden">
+
+        <label for="source-name">Name der Quelle</label>
+        <input id="source-name"
+               placeholder="z. B. HISinOne SoSe 2026">
+
+        <label for="source-type">Art</label>
+        <select id="source-type" onchange="updateSourceFields()">
+            <option value="ics_file">.ics-Datei von HISinOne/Moodle</option>
+            <option value="ics_url">Öffentlicher ICS-Kalenderlink</option>
+        </select>
+
+        <div id="source-file-wrap">
+            <label for="source-file">Kalenderdatei auswählen</label>
+            <input id="source-file"
+                   type="file"
+                   accept=".ics,text/calendar">
+        </div>
+
+        <div id="source-url-wrap" class="hidden">
+            <label for="source-url">ICS-Kalenderlink</label>
+            <input id="source-url"
+                   type="url"
+                   placeholder="https://…/calendar.ics">
+
+            <p class="hint warning-text">
+                Funktioniert nur bei öffentlich erreichbaren ICS-Links mit
+                Browserfreigabe. Login-geschützte HISinOne-/Moodle-Links
+                können blockiert werden.
+            </p>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn primary" type="button" onclick="saveSource()">
+                Importieren
+            </button>
+
+            <button class="btn" type="button" onclick="closeModal('modal-source')">
+                Abbrechen
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- JSON IMPORT -->
+<div id="import-dialog" class="modal-bg">
+    <div class="modal import-modal">
+        <div class="dialog-icon">📥</div>
+        <h3>Backup importieren</h3>
+
+        <p id="import-summary" class="dialog-text"></p>
+
+        <button id="import-merge" class="btn primary full" type="button">
+            Zusammenführen
+        </button>
+
+        <button id="import-replace" class="btn danger full" type="button">
+            Alles ersetzen
+        </button>
+
+        <button id="import-cancel" class="btn full" type="button">
+            Abbrechen
+        </button>
+
+        <p class="hint center-text">
+            Zusammenführen behält vorhandene Daten und übernimmt neue oder
+            aktualisierte Einträge aus dem Backup.
+        </p>
+    </div>
+</div>
+
+<!-- BESTÄTIGUNG -->
+<div id="confirm-dialog" class="modal-bg">
+    <div class="modal import-modal">
+        <div id="confirm-icon" class="dialog-icon">⚠️</div>
+        <h3 id="confirm-title">Fortfahren?</h3>
+        <p id="confirm-text" class="dialog-text"></p>
+
+        <div class="modal-actions">
+            <button id="confirm-ok" class="btn danger" type="button">
+                Fortfahren
+            </button>
+
+            <button id="confirm-cancel" class="btn" type="button">
+                Abbrechen
+            </button>
+        </div>
+    </div>
+</div>
+
+<datalist id="course-list"></datalist>
+
+<div id="toast" class="toast"></div>
+
+<div id="snackbar" class="snackbar">
+    <span id="snackbar-text">Gelöscht</span>
+    <button id="snackbar-undo" class="btn primary" type="button">
+        Rückgängig
+    </button>
+</div>
+
+</body>
+</html>
